@@ -3,6 +3,12 @@ import tensorflow as tf
 import tensorflow.keras.layers as kl
 import tensorflow.python.keras.engine
 import logging
+from SULI.src.bad_seed_env import BadSeedEnv
+from SULI.src.bad_seed_env import TRIALS
+from SULI.src.bad_seed_env import SAMPLES
+from SULI.src.bad_seed_env import COUNT
+
+
 
 class ProbabilityDistribution(tf.keras.Model):
   def call(self, logits, **kwargs):
@@ -14,6 +20,7 @@ class Model(tf.keras.Model):
   def __init__(self, num_actions):
     super().__init__('mlp_policy')
     # Note: no tf.get_variable(), just simple Keras API!
+    self.hidden = kl.Flatten()
     self.hidden1 = kl.Dense(128, activation='relu')
     self.hidden2 = kl.Dense(128, activation='relu')
     self.value = kl.Dense(1, name='value')
@@ -40,8 +47,11 @@ class Model(tf.keras.Model):
 
 
 import gym
+# Instantiate the env
+env = BadSeedEnv()
 
-env = gym.make('CartPole-v0')
+# wrap it
+# env = make_vec_env(lambda: env, n_envs=1)
 model = Model(num_actions=env.action_space.n)
 
 obs = env.reset()
@@ -76,7 +86,7 @@ class A2CAgent():
                 env.render()
         return ep_reward
 
-    def train(self, env, batch_sz=64, updates=250):
+    def train(self, env, batch_sz=TRIALS, updates=250):
         # Storage helpers for a single batch of data.
         actions = np.empty((batch_sz,), dtype=np.int32)
         rewards, dones, values = np.empty((3, batch_sz))
