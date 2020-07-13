@@ -2,6 +2,7 @@ import numpy as np
 import gym
 from gym import spaces
 from random import random
+from tensorforce.environments import Environment
 
 # from SULI.src.a2c_test import Model
 
@@ -67,7 +68,7 @@ class BadSeedEnv(gym.Env):
         done = bool(self.count == TRIALS - 1)
 
         # Null reward everywhere except when reaching the goal (left of the grid)
-        reward = 1 if self.count == TRIALS else 0
+        reward = 1 if self.count == TRIALS - 1 else 0
 
         # Optionally we can pass additional info, we are not using that for now
         info = {}

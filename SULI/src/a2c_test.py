@@ -20,7 +20,6 @@ class Model(tf.keras.Model):
   def __init__(self, num_actions):
     super().__init__('mlp_policy')
     # Note: no tf.get_variable(), just simple Keras API!
-    self.hidden = kl.Flatten()
     self.hidden1 = kl.Dense(128, activation='relu')
     self.hidden2 = kl.Dense(128, activation='relu')
     self.value = kl.Dense(1, name='value')
@@ -55,8 +54,11 @@ env = BadSeedEnv()
 model = Model(num_actions=env.action_space.n)
 
 obs = env.reset()
+
 # No feed_dict or tf.Session() needed at all!
 action, value = model.action_value(obs[None, :])
+print("value",  value)
+print("action", action)
 print(action, value) # [1] [-0.00145713]
 
 
@@ -78,9 +80,11 @@ class A2CAgent():
 
     def test(self, env, render=True):
         obs, done, ep_reward = env.reset(), False, 0
+        print("obs", obs)
         while not done:
             action, _ = self.model.action_value(obs[None, :])
             obs, reward, done, _ = env.step(action)
+            print("obs in loop", obs)
             ep_reward += reward
             if render:
                 env.render()
@@ -164,11 +168,11 @@ class A2CAgent():
 
 agent = A2CAgent(model)
 rewards_sum = agent.test(env)
-print("%d out of 200" % rewards_sum)  # 18 out of 200
+print("%d out of 1" % rewards_sum)  # 18 out of 200
 
 rewards_history = agent.train(env)
 print("Finished training, testing...")
-print("%d out of 200" % agent.test(env))  # 200 out of 200
+print("%d out of 1" % agent.test(env))  # 200 out of 200
 
 
 with tf.Graph().as_default():
@@ -179,4 +183,4 @@ with tf.Graph().as_default():
 
   rewards_history = agent.train(env)
   print("Finished training, testing...")
-  print("%d out of 200" % agent.test(env)) # 200 out of 200
+  print("%d out of 1" % agent.test(env)) # 200 out of 200
