@@ -6,18 +6,19 @@ from tensorforce.environments import Environment
 from tensorforce.agents import Agent
 from tensorforce.execution import Runner
 
-class CustomEnvironment(gym.Env):
+class CustomEnvironment(Environment):
     LEFT = 0
     RIGHT = 1
 
-    def __init__(self):
-        def __init__(self, grid_size=10):
-            super(CustomEnvironment, self).__init__()
+    # def __init__(self):
+    def __init__(self, grid_size=10):
+            super().__init__()
 
             # Size of the 1D-grid
             self.grid_size = grid_size
             # Initialize the agent at the right of the grid
             self.agent_pos = grid_size - 1
+            self._max_episode_timesteps = 500
 
             # Define action and observation space
             # They must be gym.spaces objects
@@ -30,19 +31,19 @@ class CustomEnvironment(gym.Env):
                                                 shape=(1,), dtype=np.float32)
 
     def states(self):
-        return dict(type='float', shape=(4,))
+        return dict(type='float', shape=(1))
 
     def actions(self):
         return dict(type='int', num_values=2)
 
     # Optional, should only be defined if environment has a natural maximum
     # episode length
-    # def max_episode_timesteps(self):
-    #     return super().max_episode_timesteps()
-
-    # Optional
-    def close(self):
-        pass
+    def max_episode_timesteps(self):
+        return super().max_episode_timesteps()
+    #
+    # # Optional
+    # def close(self):
+    #     pass
 
     def reset(self):
         """
@@ -54,10 +55,10 @@ class CustomEnvironment(gym.Env):
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([self.agent_pos]).astype(np.float32)
 
-    def execute(self, action):
-        if action == self.LEFT:
+    def execute(self, actions):
+        if actions == self.LEFT:
             self.agent_pos -= 1
-        elif action == self.RIGHT:
+        elif actions == self.RIGHT:
             self.agent_pos += 1
         else:
             raise ValueError("Received invalid action={} which is not part of the action space".format(action))
@@ -73,19 +74,14 @@ class CustomEnvironment(gym.Env):
 
         # Optionally we can pass additional info, we are not using that for now
         info = {}
-
-        return np.array([self.agent_pos]).astype(np.float32), reward, done, info
-
-    def render(self, mode='console'):
-        if mode != 'console':
-            raise NotImplementedError()
-        # agent is represented as a cross, rest as a dot
-        print("." * self.agent_pos, end="")
-        print("x", end="")
-        print("." * (self.grid_size - self.agent_pos))
+        returning = np.array([self.agent_pos]).astype(np.float32), reward, done
+        print(returning)
+        return returning
 
 
-environment = CustomEnvironment()
+environment = Environment.create(
+    environment=CustomEnvironment, max_episode_timesteps=500
+)
 
 # Create agent and environment
 # environment = Environment.create(
@@ -99,6 +95,8 @@ for _ in range(200):
     terminal = False
     while not terminal:
         actions = agent.act(states=states)
+        print(actions)
+        print(states)
         states, terminal, reward = environment.execute(actions=actions)
         agent.observe(terminal=terminal, reward=reward)
 
