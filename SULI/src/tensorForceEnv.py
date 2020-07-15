@@ -84,6 +84,13 @@ class CustomEnvironment(Environment):
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([self.agent_pos]).astype(np.float32)
 
+    def stdDeviaiton(self, array):
+        cleanedUp = np.array([])
+        for elem in array:
+            if elem != 0:
+                np.append(cleanedUp, elem)
+        return np.std(cleanedUp)
+
     def execute(self, actions):
         if self.agent_pos < self.SAMPLES:
             for i in range(self.SAMPLES):
@@ -123,6 +130,7 @@ class CustomEnvironment(Environment):
         # for i in range(self.SAMPLES):
         #     if self.minSampling[i] <= 2 and done:
         #         reward += 1
+
         if self.agent_pos == self.TRIALS - 1:
             reward += 1
 
