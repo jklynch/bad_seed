@@ -31,9 +31,9 @@ class CustomEnvironment(Environment):
             # Size of the 1D-grid
             self.grid_size = grid_size
             # Initialize the agent at the right of the grid
-            self.agent_pos = 0
+            self.agent_pos = 3
             self._max_episode_timesteps = 500
-            self.TRIALS = 20
+            self.TRIALS = 10
             self.SAMPLES = 5
             self.GRID = []
             self.minSampling = {}
@@ -46,14 +46,17 @@ class CustomEnvironment(Environment):
             for i in range(self.SAMPLES):
                 col = []
                 for j in range(self.TRIALS):
-                    col.append(0)
+                    if j < 3:
+                        col.append(random())
+                    else:
+                        col.append(0)
                 self.GRID.append(col)
 
             for i in range(self.SAMPLES):
-                self.minSampling[i] = 0
+                self.minSampling[i] = 3
 
             for i in range(self.SAMPLES):
-                self.stdDev[i] = 0
+                self.stdDev[i] = 3
 
             # for i in range(self.SAMPLES):
             #     self.stdDevSim[i] = 0
@@ -96,75 +99,55 @@ class CustomEnvironment(Environment):
             Important: the observation must be a numpy array
             :return: (np.array)
             """
+        self.agent_pos = 3
         for i in range(self.SAMPLES):
             for j in range(self.TRIALS):
-                self.GRID[i][j] = 0
+                if j < 3:
+                    self.GRID[i][j] = random()
+                else:
+                    self.GRID[i][j] = 0
 
         for i in range(self.SAMPLES):
-            self.minSampling[i] = 0
+            self.minSampling[i] = 3
         # Initialize the agent at the right of the grid
-        self.agent_pos = 0
+        # self.agent_pos = 0
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([self.agent_pos]).astype(np.float32)
 
     def execute(self, actions):
         maxStdDev = []
         reward = 0
-        if self.agent_pos < self.SAMPLES:
-            for i in range(self.SAMPLES):
-                self.GRID[i][self.agent_pos] = random()
-                self.minSampling[i] += 1
-                self.agent_pos += 1
-        elif self.agent_pos < 2 * self.SAMPLES:
-            for i in range(self.SAMPLES):
-                self.GRID[i][self.agent_pos] = random()
-                self.minSampling[i] += 1
-                self.agent_pos += 1
-
-        elif (actions >= 0 and actions < self.SAMPLES):
+        print("actions", actions)
+        if (actions >= 0 and actions < self.SAMPLES):
             for i in range(self.SAMPLES):
                 self.stdDev[i] = stdDeviaiton(array=self.GRID[i])
             maxStdDev = nlargest(3, self.stdDev, key=self.stdDev.get)
+            print(actions, maxStdDev)
             if actions in maxStdDev:
                 reward += 1
                 print(reward)
             # print(maxStdDev, actions)
             # if self.agent_pos <= self.TRIALS:
-            print(self.agent_pos)
             self.GRID[actions][self.agent_pos] = random()
             self.minSampling[actions] += 1
+            print("position1", self.agent_pos)
             self.agent_pos += 1
+            print("position2", self.agent_pos)
         else:
             raise ValueError("Received invalid action={} which is not part of the action space".format(actions))
             # Account for the boundaries of the grid
-        # self.agent_pos = np.clip(self.agent_pos, 0, self.TRIALS)
+        self.agent_pos = np.clip(self.agent_pos, 0, self.TRIALS)
 
         # Are we at the right of the grid?
-        done = bool(self.agent_pos + 1 >= self.TRIALS - 1)
-
-        # if actions in maxStdDev:
-        #     reward += 1
-        #     print(reward)
-        self.agent_pos += 1
-        print(self.agent_pos, self.TRIALS)
-        if self.agent_pos + 1 == self.TRIALS - 1:
-            reward += 5
-        elif self.agent_pos + 2 == self.TRIALS - 1:
-            reward += 4
-        elif self.agent_pos + 3 == self.TRIALS - 1:
-            reward += 3
-        elif self.agent_pos + 4 == self.TRIALS - 1:
-            reward += 2
-        else:
-            reward += 1
+        done = bool(self.agent_pos >= self.TRIALS - 1)
 
         if done:
+            reward += 1
             print("reward", reward)
             self.sum += 1
-            if self.sum > 20:
+            if self.sum > 200:
                 CustomEnvironment.sum += reward
         returning = np.array([self.agent_pos]).astype(np.float32), reward, done
-        # print(done)
         return returning
 
 
@@ -179,7 +162,7 @@ environment = Environment.create(
 agent = Agent.create(agent='a2c', environment=environment, batch_size=10, learning_rate=1e-3)
 
 # Train for 200 episodes
-for _ in range(20):
+for _ in range(200):
     states = environment.reset()
     terminal = False
     while not terminal:
@@ -191,7 +174,7 @@ for _ in range(20):
 
 # Evaluate for 100 episodes
 sum_rewards = 0.0
-for _ in range(10):
+for _ in range(100):
     states = environment.reset()
     internals = agent.initial_internals()
     terminal = False
