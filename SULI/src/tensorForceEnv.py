@@ -28,10 +28,12 @@ class CustomEnvironment(Environment):
     def __init__(self, grid_size=10):
             super().__init__()
 
+            self.startingPoint = 3
+
             # Size of the 1D-grid
             self.grid_size = grid_size
             # Initialize the agent at the right of the grid
-            self.agent_pos = 3
+            self.agent_pos = self.startingPoint
             self._max_episode_timesteps = 500
             self.TRIALS = 10
             self.SAMPLES = 5
@@ -40,23 +42,24 @@ class CustomEnvironment(Environment):
             self.stdDev = {}
             # self.stdDevSim = {}
             self.sum = 0
+            self.extraCounter = self.startingPoint
             # self.simulation = [[0, 0, 0, 0, 0, 0, 7, 2, 0, 0], [0, 3, 0, 0, 0, 3, 0, 0, 0, 0],[0, 0, 2, 9, 0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 1, 0, 0, 1, 0, 0],[0, 0, 0, 0, 0, 0, 1, 0, 8, 0]]
 
 
             for i in range(self.SAMPLES):
                 col = []
                 for j in range(self.TRIALS):
-                    if j < 3:
+                    if j < self.startingPoint:
                         col.append(random())
                     else:
                         col.append(0)
                 self.GRID.append(col)
 
             for i in range(self.SAMPLES):
-                self.minSampling[i] = 3
+                self.minSampling[i] = self.startingPoint
 
             for i in range(self.SAMPLES):
-                self.stdDev[i] = 3
+                self.stdDev[i] = self.startingPoint
 
             # for i in range(self.SAMPLES):
             #     self.stdDevSim[i] = 0
@@ -95,26 +98,23 @@ class CustomEnvironment(Environment):
     #     pass
 
     def reset(self):
-        """
-            Important: the observation must be a numpy array
-            :return: (np.array)
-            """
-        self.agent_pos = 3
+        self.extraCounter = self.startingPoint
+        self.agent_pos = self.startingPoint
         for i in range(self.SAMPLES):
             for j in range(self.TRIALS):
-                if j < 3:
+                if j < self.startingPoint:
                     self.GRID[i][j] = random()
                 else:
                     self.GRID[i][j] = 0
 
         for i in range(self.SAMPLES):
-            self.minSampling[i] = 3
-        # Initialize the agent at the right of the grid
-        # self.agent_pos = 0
+            self.minSampling[i] = self.startingPoint
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([self.agent_pos]).astype(np.float32)
 
     def execute(self, actions):
+        self.extraCounter += 1
+        print("extraCounter", self.extraCounter)
         maxStdDev = []
         reward = 0
         print("actions", actions)
