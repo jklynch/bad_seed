@@ -19,6 +19,7 @@ class CustomEnvironment(Environment):
     # LEFT = 0
     # RIGHT = 1
     sum = 0
+    extraCounter = 3
     # SAMPLES = 5
     # TRIALS = 10
     # GRID = []
@@ -99,6 +100,7 @@ class CustomEnvironment(Environment):
 
     def reset(self):
         self.extraCounter = self.startingPoint
+        CustomEnvironment.extraCounter = 3
         self.agent_pos = self.startingPoint
         for i in range(self.SAMPLES):
             for j in range(self.TRIALS):
@@ -114,7 +116,8 @@ class CustomEnvironment(Environment):
 
     def execute(self, actions):
         self.extraCounter += 1
-        print("extraCounter", self.extraCounter)
+        CustomEnvironment.extraCounter += 1
+        print("extraCounter", CustomEnvironment.extraCounter)
         maxStdDev = []
         reward = 0
         print("actions", actions)
@@ -165,7 +168,7 @@ agent = Agent.create(agent='a2c', environment=environment, batch_size=10, learni
 for _ in range(200):
     states = environment.reset()
     terminal = False
-    while not terminal:
+    while not terminal and CustomEnvironment.extraCounter != 9:
         actions = agent.act(states=states)
         # print(actions)
         # print(states)
@@ -178,7 +181,8 @@ for _ in range(100):
     states = environment.reset()
     internals = agent.initial_internals()
     terminal = False
-    while not terminal:
+    print("check", CustomEnvironment.extraCounter)
+    while not terminal and CustomEnvironment.extraCounter != 9:
         actions, internals = agent.act(states=states, internals=internals, independent=True)
         states, terminal, reward = environment.execute(actions=actions)
         sum_rewards += reward
