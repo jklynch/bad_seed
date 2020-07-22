@@ -20,6 +20,9 @@ class CustomEnvironment(Environment):
     # RIGHT = 1
     sum = 0
     extraCounter = 3
+    firstCount = 0
+    secondCount = 0
+    thirdCount = 0
     # SAMPLES = 5
     # TRIALS = 10
     # GRID = []
@@ -36,13 +39,14 @@ class CustomEnvironment(Environment):
             # Initialize the agent at the right of the grid
             self.agent_pos = self.startingPoint
             self._max_episode_timesteps = 500
-            self.TRIALS = 10
+            self.TRIALS = 100
             self.SAMPLES = 5
             self.GRID = []
             self.minSampling = {}
             self.stdDev = {}
             # self.stdDevSim = {}
             self.sum = 0
+            self.reward = 0
             # self.extraCounter = self.startingPoint
             # self.simulation = [[0, 0, 0, 0, 0, 0, 7, 2, 0, 0], [0, 3, 0, 0, 0, 3, 0, 0, 0, 0],[0, 0, 2, 9, 0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 1, 0, 0, 1, 0, 0],[0, 0, 0, 0, 0, 0, 1, 0, 8, 0]]
 
@@ -101,6 +105,7 @@ class CustomEnvironment(Environment):
     def reset(self):
         # self.extraCounter = self.startingPoint
         CustomEnvironment.extraCounter = self.startingPoint
+        self.reward = 0
         self.agent_pos = self.startingPoint
         for i in range(self.SAMPLES):
             for j in range(self.TRIALS):
@@ -124,13 +129,21 @@ class CustomEnvironment(Environment):
                 self.stdDev[i] = stdDeviaiton(array=self.GRID[i])
             maxStdDev = nlargest(3, self.stdDev, key=self.stdDev.get)
             print(actions, maxStdDev)
-            if actions in maxStdDev:
-                reward += 1
+            if actions == maxStdDev[0]:
+                CustomEnvironment.firstCount += 1
+                self.reward += 1
+            if actions == maxStdDev[1]:
+                CustomEnvironment.secondCount += 1
+                self.reward += 1
+            if actions == maxStdDev[2]:
+                CustomEnvironment.thirdCount += 1
+                self.reward += 1
             # print(maxStdDev, actions)
             # if self.agent_pos <= self.TRIALS:
             self.GRID[actions][self.agent_pos] = random()
             self.minSampling[actions] += 1
             self.agent_pos += 1
+            print(self.reward)
         else:
             raise ValueError("Received invalid action={} which is not part of the action space".format(actions))
             # Account for the boundaries of the grid
@@ -140,9 +153,10 @@ class CustomEnvironment(Environment):
         done = bool(self.agent_pos == self.TRIALS)
 
         if done:
+            reward = self.reward
             # reward += 1
             self.sum += 1
-            if self.sum > 200:
+            if self.sum > 0:
                 CustomEnvironment.sum += reward
             print(self.minSampling)
         returning = np.array([self.agent_pos]).astype(np.float32), reward, done
@@ -155,28 +169,31 @@ def runEnv():
     agent = Agent.create(agent='a2c', environment=environment, batch_size=10, learning_rate=1e-3)
 
     # Train for 200 episodes
-    for _ in range(200):
-        states = environment.reset()
-        terminal = False
-        while CustomEnvironment.extraCounter != 10:
-            actions = agent.act(states=states)
-            # print(actions)
-            # print(states)
-            states, terminal, reward = environment.execute(actions=actions)
-            agent.observe(terminal=terminal, reward=reward)
+    # for _ in range(2):
+    #     states = environment.reset()
+    #     terminal = False
+    #     while CustomEnvironment.extraCounter != 100:
+    #         actions = agent.act(states=states)
+    #         # print(actions)
+    #         # print(states)
+    #         states, terminal, reward = environment.execute(actions=actions)
+    #         agent.observe(terminal=terminal, reward=reward)
 
     # Evaluate for 100 episodes
     sum_rewards = 0.0
-    for _ in range(100):
+    for _ in range(1):
         states = environment.reset()
         internals = agent.initial_internals()
         terminal = False
-        while CustomEnvironment.extraCounter != 10:
+        while CustomEnvironment.extraCounter != 100:
             actions, internals = agent.act(states=states, internals=internals, independent=True)
             states, terminal, reward = environment.execute(actions=actions)
             sum_rewards += reward
 
     # print('Mean episode reward:', sum_rewards / 100)
+    print(CustomEnvironment.firstCount)
+    print(CustomEnvironment.secondCount)
+    print(CustomEnvironment.thirdCount)
     print(CustomEnvironment.sum)
 
     # Close agent and environment
