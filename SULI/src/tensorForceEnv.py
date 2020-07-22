@@ -43,7 +43,7 @@ class CustomEnvironment(Environment):
             self.stdDev = {}
             # self.stdDevSim = {}
             self.sum = 0
-            self.extraCounter = self.startingPoint
+            # self.extraCounter = self.startingPoint
             # self.simulation = [[0, 0, 0, 0, 0, 0, 7, 2, 0, 0], [0, 3, 0, 0, 0, 3, 0, 0, 0, 0],[0, 0, 2, 9, 0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 1, 0, 0, 1, 0, 0],[0, 0, 0, 0, 0, 0, 1, 0, 8, 0]]
 
 
@@ -57,7 +57,7 @@ class CustomEnvironment(Environment):
                 self.GRID.append(col)
 
             for i in range(self.SAMPLES):
-                self.minSampling[i] = self.startingPoint
+                self.minSampling[i] = 0
 
             for i in range(self.SAMPLES):
                 self.stdDev[i] = self.startingPoint
@@ -99,8 +99,8 @@ class CustomEnvironment(Environment):
     #     pass
 
     def reset(self):
-        self.extraCounter = self.startingPoint
-        CustomEnvironment.extraCounter = 3
+        # self.extraCounter = self.startingPoint
+        CustomEnvironment.extraCounter = self.startingPoint
         self.agent_pos = self.startingPoint
         for i in range(self.SAMPLES):
             for j in range(self.TRIALS):
@@ -110,17 +110,15 @@ class CustomEnvironment(Environment):
                     self.GRID[i][j] = 0
 
         for i in range(self.SAMPLES):
-            self.minSampling[i] = self.startingPoint
+            self.minSampling[i] = 0
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([self.agent_pos]).astype(np.float32)
 
     def execute(self, actions):
-        self.extraCounter += 1
+        # self.extraCounter += 1
         CustomEnvironment.extraCounter += 1
-        print("extraCounter", CustomEnvironment.extraCounter)
         maxStdDev = []
         reward = 0
-        print("actions", actions)
         if (actions >= 0 and actions < self.SAMPLES):
             for i in range(self.SAMPLES):
                 self.stdDev[i] = stdDeviaiton(array=self.GRID[i])
@@ -128,68 +126,61 @@ class CustomEnvironment(Environment):
             print(actions, maxStdDev)
             if actions in maxStdDev:
                 reward += 1
-                print(reward)
             # print(maxStdDev, actions)
             # if self.agent_pos <= self.TRIALS:
             self.GRID[actions][self.agent_pos] = random()
             self.minSampling[actions] += 1
-            print("position1", self.agent_pos)
             self.agent_pos += 1
-            print("position2", self.agent_pos)
         else:
             raise ValueError("Received invalid action={} which is not part of the action space".format(actions))
             # Account for the boundaries of the grid
         self.agent_pos = np.clip(self.agent_pos, 0, self.TRIALS)
 
         # Are we at the right of the grid?
-        done = bool(self.agent_pos >= self.TRIALS - 1)
+        done = bool(self.agent_pos == self.TRIALS)
 
         if done:
-            reward += 1
-            print("reward", reward)
+            # reward += 1
             self.sum += 1
             if self.sum > 200:
                 CustomEnvironment.sum += reward
+            print(self.minSampling)
         returning = np.array([self.agent_pos]).astype(np.float32), reward, done
         return returning
 
+def runEnv():
+    environment = Environment.create(
+        environment=CustomEnvironment, max_episode_timesteps=500
+    )
+    agent = Agent.create(agent='a2c', environment=environment, batch_size=10, learning_rate=1e-3)
 
-environment = Environment.create(
-    environment=CustomEnvironment, max_episode_timesteps=500
-)
+    # Train for 200 episodes
+    for _ in range(200):
+        states = environment.reset()
+        terminal = False
+        while CustomEnvironment.extraCounter != 10:
+            actions = agent.act(states=states)
+            # print(actions)
+            # print(states)
+            states, terminal, reward = environment.execute(actions=actions)
+            agent.observe(terminal=terminal, reward=reward)
 
-# Create agent and environment
-# environment = Environment.create(
-#     environment='gym', level='CartPole', max_episode_timesteps=500
-# )
-agent = Agent.create(agent='a2c', environment=environment, batch_size=10, learning_rate=1e-3)
+    # Evaluate for 100 episodes
+    sum_rewards = 0.0
+    for _ in range(100):
+        states = environment.reset()
+        internals = agent.initial_internals()
+        terminal = False
+        while CustomEnvironment.extraCounter != 10:
+            actions, internals = agent.act(states=states, internals=internals, independent=True)
+            states, terminal, reward = environment.execute(actions=actions)
+            sum_rewards += reward
 
-# Train for 200 episodes
-for _ in range(200):
-    states = environment.reset()
-    terminal = False
-    while not terminal and CustomEnvironment.extraCounter != 9:
-        actions = agent.act(states=states)
-        # print(actions)
-        # print(states)
-        states, terminal, reward = environment.execute(actions=actions)
-        agent.observe(terminal=terminal, reward=reward)
+    # print('Mean episode reward:', sum_rewards / 100)
+    print(CustomEnvironment.sum)
 
-# Evaluate for 100 episodes
-sum_rewards = 0.0
-for _ in range(100):
-    states = environment.reset()
-    internals = agent.initial_internals()
-    terminal = False
-    print("check", CustomEnvironment.extraCounter)
-    while not terminal and CustomEnvironment.extraCounter != 9:
-        actions, internals = agent.act(states=states, internals=internals, independent=True)
-        states, terminal, reward = environment.execute(actions=actions)
-        sum_rewards += reward
+    # Close agent and environment
+    agent.close()
+    environment.close()
 
-# print('Mean episode reward:', sum_rewards / 100)
-print(CustomEnvironment.sum)
-
-# Close agent and environment
-agent.close()
-environment.close()
+runEnv()
