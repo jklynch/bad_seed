@@ -200,4 +200,6 @@ def runEnv():
     agent.close()
     environment.close()
 
-runEnv()
+
+if __name__ == "__main__":
+    runEnv()
